@@ -4,51 +4,54 @@ import type { Armor } from '$lib/models/armor';
 import type { DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
+import type { Weapon } from '$lib/models/weapon.js';
+import { getCaliberName } from '$lib/util/ammo';
 
-let armors: Armor[];
-let searchedArmor: Armor;
+let weapons: Weapon[];
+let searchedWeapon: Weapon;
 
-const dataPointInfo: DataPointInfo<Armor>[] = [
+const dataPointInfo: DataPointInfo<Weapon>[] = [
 	{
-		label: 'Class',
-		type: 'number',
-		value: (obj) => {
-			return obj.properties.class;
-		}
-	},
-	{
-		label: 'Durability',
-		type: 'number',
-		value: (obj) => {
-			return obj.properties.durability;
-		}
-	},
-	{
-		label: 'Material',
+		label: 'Type',
 		type: 'string',
 		value: (obj) => {
-			return obj.properties.material.name;
+			return obj.category.name;
 		}
 	},
 	{
-		label: 'Price',
-		type: 'number',
+		label: 'Caliber',
+		type: 'string',
 		value: (obj) => {
-			return obj.buyFor.filter((x) => x.vendor.name !== 'Flea Market').length
-				? obj.buyFor.filter((x) => x.vendor.name !== 'Flea Market')[0].priceRUB
-				: undefined;
+			return obj.properties.caliber;
 		},
 		format: (val) => {
-			if (!val) return 'No Price';
-			return val.toLocaleString('en-US', {
-				style: 'currency',
-				currency: 'RUB',
-				currencyDisplay: 'narrowSymbol',
-				minimumFractionDigits: 0,
-				maximumFractionDigits: 0
-			});
+			if (typeof val === 'string') {
+				return getCaliberName(val) || 'None';
+			}
+			return 'None';
 		}
 	},
+	{
+		label: 'Fire Rate',
+		type: 'number',
+		value: (obj) => {
+			return obj.properties.fireRate;
+		}
+	},
+	{
+		label: 'Fire Modes',
+		type: 'array',
+		value: (obj) => {
+			return obj.properties.fireModes;
+		},
+		format: (val) => {
+			if (Array.isArray(val)) {
+				return val.join(', ') || 'None';
+			}
+			return 'None';
+		}
+	},
+
 	{
 		label: 'Trader',
 		type: 'array',
@@ -75,18 +78,18 @@ export async function load({ cookies }) {
 			item: userData.item,
 			dataPoints: userData.dataPoints,
 			totalGuesses: userData.totalGuesses,
-			armors: { items: [] }
+			weapons: { items: [] }
 		};
 	}
 
 	const query = gql`
 		{
-			items(categoryNames: [Armor]) {
+			items(categoryNames: [Weapon], type: gun) {
 				id
-				name
 				shortName
-				basePrice
+				name
 				image512pxLink
+				types
 				buyFor {
 					priceRUB
 					price
@@ -95,15 +98,19 @@ export async function load({ cookies }) {
 						normalizedName
 					}
 				}
+				category {
+					name
+				}
 				properties {
 					__typename
-					... on ItemPropertiesArmor {
-						durability
-						class
-						zones
-						material {
+					... on ItemPropertiesWeapon {
+						caliber
+						fireModes
+						fireRate
+						defaultPreset {
 							id
 							name
+							image512pxLink
 						}
 					}
 				}
@@ -111,28 +118,30 @@ export async function load({ cookies }) {
 		}
 	`;
 
-	const result = await request<GraphQlResponse<Armor, 'items'>>(
+	const result = await request<GraphQlResponse<Weapon, 'items'>>(
 		'https://api.tarkov.dev/graphql',
 		query
 	);
 
-	armors = result.items;
-	searchedArmor = armors[Math.floor(Math.random() * armors.length)];
+	weapons = result.items.filter(
+		(x) => x.types.indexOf('preset') === -1 && !x.shortName.includes('Default')
+	);
+	searchedWeapon = weapons[Math.floor(Math.random() * weapons.length)];
 
 	return {
-		armors: result
+		weapons: result
 	};
 }
 
 export const actions = {
 	select: async ({ request, cookies }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
-		const armor = armors.find((x) => x.id === id);
-		if (!armor) return false;
+		const weapon = weapons.find((x) => x.id === id);
+		if (!weapon) return false;
 
 		let isWon = false;
 
-		const dataPoints = generateDataPoints<Armor>(dataPointInfo, armor, searchedArmor);
+		const dataPoints = generateDataPoints<Weapon>(dataPointInfo, weapon, searchedWeapon);
 
 		/**
 		 * In case a Item is guessed, which has the correct specifications, but has a similar ID
@@ -149,8 +158,8 @@ export const actions = {
 			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
 			dataPoints,
 			item: {
-				id: armor.id,
-				name: armor.name
+				id: weapon.id,
+				name: weapon.name
 			}
 		});
 
@@ -162,8 +171,8 @@ export const actions = {
 			won: isWon,
 			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
 			item: {
-				id: armor.id,
-				name: armor.shortName
+				id: weapon.properties?.defaultPreset?.id || weapon.id,
+				name: weapon.shortName
 			},
 			dataPoints
 		};

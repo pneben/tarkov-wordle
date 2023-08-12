@@ -5,7 +5,7 @@
 	import type { Armor } from '$lib/models/armor.js';
 	import type { ResultData } from '$lib/types/tarkovle';
 	import { ChevronDoubleUp, Icon } from 'svelte-hero-icons';
-	import { invalidateAll } from '$app/navigation';
+	import type { Weapon } from '$lib/models/weapon.js';
 
 	export let data;
 
@@ -20,10 +20,9 @@
 	let showWinBanner = false;
 	let search: string;
 	let totalGuesses = 0;
+	let filteredWeapons: Weapon[] = untrackedData.weapons.items;
 
-	let filteredArmor: Armor[] = untrackedData.armors.items.filter((x) =>
-		search ? x.shortName.toLowerCase() === search.toLowerCase() : true
-	);
+	console.log(filteredWeapons);
 
 	const onAlreadyWon = () => {
 		if (showWinBanner) return;
@@ -45,10 +44,10 @@
 	}
 
 	const searchUpdate = () => {
-		const tmp = untrackedData.armors.items.filter((x) =>
+		const tmp = untrackedData.weapons.items.filter((x) =>
 			search ? x.shortName.toLowerCase() === search.toLowerCase() : true
 		);
-		filteredArmor = tmp;
+		filteredWeapons = tmp;
 	};
 
 	const selectArmor = (id: string) => {
@@ -57,6 +56,7 @@
 	};
 
 	const addItem = (form: ResultData) => {
+		console.log(form);
 		guesses.push(form);
 		guesses = guesses;
 		guessBlocked = true;
@@ -96,7 +96,7 @@
 			<div class="dropdown">
 				<input
 					type="text"
-					placeholder="Armor..."
+					placeholder="Weapon..."
 					tabindex="-1"
 					class="input input-bordered input-primary w-[300px]"
 					disabled={guessBlocked}
@@ -109,12 +109,16 @@
 					tabindex="-1"
 					class="block dropdown-content w-[300px] max-h-[300px] overflow-y-scroll z-[1] menu p-2 mt-2 shadow bg-base-100 rounded-box"
 				>
-					{#each filteredArmor as armor}
+					{#each filteredWeapons as weapon}
 						<li>
-							<button class="flex" on:click={() => selectArmor(armor.id)}>
-								<img class="w-[64px]" src={armor.image512pxLink} alt="" />
+							<button class="flex" on:click={() => selectArmor(weapon.id)}>
+								<img
+									class="w-[64px]"
+									src={weapon.properties?.defaultPreset?.image512pxLink || weapon.image512pxLink}
+									alt=""
+								/>
 								<div class="text-arrowtown-400">
-									{armor.name}
+									{weapon.shortName}
 								</div>
 							</button>
 						</li>
@@ -130,7 +134,7 @@
 			<div class="flex self-center gap-x-4">
 				<Icon class="w-8  text-arrowtown-400 " src={ChevronDoubleUp} size={'86px'} />
 				<div class="text-center text-3xl mt-6 mb-8 font-medium text-arrowtown-400">
-					Select an Armor to begin
+					Select a Weapon to begin
 				</div>
 				<Icon class="w-8 text-arrowtown-400 " src={ChevronDoubleUp} size={'86px'} />
 			</div>

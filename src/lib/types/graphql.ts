@@ -7,8 +7,12 @@ export interface Item<T> {
 	name: string;
 	shortName: string;
 	basePrice: number;
+	types: string[];
 	buyFor: ItemPrice[];
 	image512pxLink: string;
+	category: {
+		name: string;
+	};
 	properties: T;
 }
 

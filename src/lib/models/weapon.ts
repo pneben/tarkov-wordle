@@ -1,10 +1,19 @@
 import type { Item } from '$lib/types/graphql';
 
+type FireMode = 'Single fire' | 'Full Auto';
+
+interface DefaultPreset {
+	id: string;
+	name: string;
+	image512pxLink: string;
+}
+
 interface ItemPropertiesWeapon {
 	__typename: string;
 	caliber: string;
+	fireModes: FireMode[];
 	fireRate: number;
-	fireModes: string[];
+	defaultPreset: DefaultPreset;
 }
 
 export interface Weapon extends Item<ItemPropertiesWeapon> {}
