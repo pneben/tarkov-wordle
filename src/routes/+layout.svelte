@@ -1,6 +1,6 @@
 <script>
 	import '../app.css';
-	import logo from '$lib/assets/logo.png';
+	import logo from '$lib/assets/tarkovdle-logo.png';
 </script>
 
 <div class="flex w-full min-h-screen h-screen dark:bg-base-100 bg-base-200">
