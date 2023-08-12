@@ -1,14 +1,7 @@
 import { request, gql } from 'graphql-request';
 import type { GraphQlResponse } from '$lib/types/graphql';
-import type { Weapon } from '$lib/models/weapon';
 import type { Armor } from '$lib/models/armor';
-import type {
-	DataPoint,
-	ResultData,
-	ResultItemData,
-	ResultPointVariant
-} from '$lib/types/tarkovle.js';
-import { get } from '$lib/util/get.js';
+import type { DataPoint, ResultData, ResultPointVariant } from '$lib/types/tarkovle.js';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 
 type DataPointInfo = {
@@ -21,7 +14,7 @@ type DataPointInfo = {
 let armors: Armor[];
 let searchedArmor: Armor;
 
-let dataPointInfo: DataPointInfo[] = [
+const dataPointInfo: DataPointInfo[] = [
 	{
 		label: 'Class',
 		type: 'number',
@@ -79,6 +72,7 @@ let dataPointInfo: DataPointInfo[] = [
 
 /** @type {PageServerLoad} */
 export async function load({ cookies }) {
+	cookies.delete('data');
 	const userData = verifyJwtToken<ResultData>(cookies.get('data'));
 
 	if (userData?.won) {
@@ -87,7 +81,8 @@ export async function load({ cookies }) {
 			item: userData.item,
 			dataPoints: userData.dataPoints,
 			totalGuesses: userData.totalGuesses,
-			armors: { items: [] }
+			armors: { items: [] },
+			noFurtherUpdates: true
 		};
 	}
 
@@ -129,10 +124,11 @@ export async function load({ cookies }) {
 	);
 
 	armors = result.items;
-	searchedArmor = armors[1];
+	searchedArmor = armors[Math.floor(Math.random() * armors.length)];
 
 	return {
-		armors: result
+		armors: result,
+		noFurtherUpdates: true
 	};
 }
 
@@ -148,7 +144,7 @@ export const actions = {
 			const isVal = info.value(armor);
 			const shouldVal = info.value(searchedArmor);
 			let variant: ResultPointVariant = 'false';
-			let value = info.format ? info.format(isVal, armor) : `${isVal}`;
+			const value = info.format ? info.format(isVal, armor) : `${isVal}`;
 			switch (info.type) {
 				case 'number':
 					if (isVal === shouldVal) variant = 'true';
