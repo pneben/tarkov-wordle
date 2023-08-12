@@ -5,4 +5,4 @@ ARG TZ=Europe/Berlin
 
 COPY . /usr/src/app
 
-CMD ["node", "index.js"]
+CMD ["node", "server/index.js"]
