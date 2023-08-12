@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.17 as node
+FROM node:18
 WORKDIR /usr/src/app
 
 ARG TZ=Europe/Berlin
