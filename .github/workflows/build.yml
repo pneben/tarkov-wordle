@@ -35,6 +35,7 @@ jobs:
             Dockerfile
             package.json
             package-lock.json
+            node_modules
           outPath: deploy.tar
 
       - name: Deploy App to CapRover
