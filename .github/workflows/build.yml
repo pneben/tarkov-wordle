@@ -33,6 +33,8 @@ jobs:
             ./build
             captain-definition
             Dockerfile
+            package.json
+            package-lock.json
           outPath: deploy.tar
 
       - name: Deploy App to CapRover
