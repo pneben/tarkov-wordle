@@ -1,10 +1,14 @@
 import jwt from 'jsonwebtoken';
+import { env } from '$env/dynamic/private';
 
 export const createJwtToken = <T>(data: T) => {
 	let token: string | undefined;
 
 	if (data !== null && data !== undefined) {
-		token = jwt.sign(data, import.meta.env.VITE_JWT_SECRET);
+		if (!env.SECRET_JWT) {
+			throw new Error('No SECRET_JWT set');
+		}
+		token = jwt.sign(data, env.SECRET_JWT);
 	}
 
 	return { token };
@@ -12,7 +16,10 @@ export const createJwtToken = <T>(data: T) => {
 
 export const verifyJwtToken = <T>(token?: string): T | null => {
 	if (!token) return null;
-	const data = jwt.verify(token, import.meta.env.VITE_JWT_SECRET) as T;
+	if (!env.SECRET_JWT) {
+		throw new Error('No SECRET_JWT set');
+	}
+	const data = jwt.verify(token, env.SECRET_JWT) as T;
 
 	return data;
 };
