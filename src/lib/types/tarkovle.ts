@@ -18,6 +18,7 @@ export interface ResultData {
 	won: boolean;
 	totalGuesses: number;
 	item: ResultItemData;
+	userId: string;
 	dataPoints: DataPoint[];
 }
 

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Confetti } from 'svelte-confetti';
-	import { deserialize, enhance } from '$app/forms';
+	import { deserialize } from '$app/forms';
 	import TarkovleResult from '$lib/components';
-	import type { Armor } from '$lib/models/armor.js';
 	import type { ResultData } from '$lib/types/tarkovle';
 	import { ChevronDoubleUp, Icon } from 'svelte-hero-icons';
 	import type { Weapon } from '$lib/models/weapon.js';

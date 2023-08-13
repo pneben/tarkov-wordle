@@ -5,9 +5,10 @@ import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
 import type { Weapon } from '$lib/models/weapon.js';
 import { getCaliberName } from '$lib/util/ammo';
+import { generateUserId } from '$lib/util/user.js';
 
 let weapons: Weapon[];
-let searchedWeapon: Weapon;
+let searchedWeapon: Record<string, Weapon> = {};
 
 const dataPointInfo: DataPointInfo<Weapon>[] = [
 	{
@@ -68,10 +69,24 @@ const dataPointInfo: DataPointInfo<Weapon>[] = [
 
 /** @type {PageServerLoad} */
 export async function load({ cookies }) {
-	cookies.delete('dataWeapon');
 	const userData = verifyJwtToken<ResultData>(cookies.get('dataWeapon'));
 
+	if (!userData) {
+		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataWeapon'));
+
+		const { token } = createJwtToken<Partial<ResultData>>({
+			won: false,
+			totalGuesses: 0,
+			userId: generateUserId()
+		});
+
+		if (token) {
+			cookies.set('dataWeapon', token);
+		}
+	}
+
 	if (userData?.won) {
+		cookies.delete('dataWeapon');
 		return {
 			isWon: userData.won,
 			item: userData.item,
@@ -125,7 +140,10 @@ export async function load({ cookies }) {
 	weapons = result.items.filter(
 		(x) => x.types.indexOf('preset') === -1 && !x.shortName.includes('Default')
 	);
-	searchedWeapon = weapons[Math.floor(Math.random() * weapons.length)];
+
+	if (userData?.userId) {
+		searchedWeapon[userData?.userId] = weapons[Math.floor(Math.random() * weapons.length)];
+	}
 
 	return {
 		weapons: result
