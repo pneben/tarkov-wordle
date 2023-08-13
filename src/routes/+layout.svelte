@@ -2,7 +2,10 @@
 	import '../app.css';
 	import logo from '$lib/assets/tarkovdle-logo.png';
 	import { navigating } from '$app/stores';
+	import Head from './Head.svelte';
 </script>
+
+<Head />
 
 <div class="flex w-full min-h-screen h-screen dark:bg-base-100 bg-base-200">
 	<a href="/" class="w-48 m-8 absolute top-0 left-0 select-none">

@@ -1,3 +1,7 @@
+<script lang="ts">
+	import githubLogo from '$lib/assets/github-mark-white.svg';
+</script>
+
 <div class="flex gap-x-10">
 	<a
 		href="/play/armor"
@@ -35,5 +39,11 @@
 			<h2 class="card-title">Barter Items</h2>
 			<p>Guess the Barter Item in an pixelated image</p>
 		</div>
+	</a>
+</div>
+
+<div class="absolute bottom-0 left-0 w-10 text-arrowtown-400 m-8">
+	<a href="https://github.com/pneben/tarkov-wordle" target="_blank">
+		<img src={githubLogo} alt="" />
 	</a>
 </div>

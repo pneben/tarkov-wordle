@@ -6,6 +6,9 @@
 	import type { ResultData } from '$lib/types/tarkovle';
 	import { ChevronDoubleUp, Icon } from 'svelte-hero-icons';
 	import type { Weapon } from '$lib/models/weapon.js';
+	import { title } from '$lib/stores/head.js';
+
+	$title = 'Weapon';
 
 	export let data;
 

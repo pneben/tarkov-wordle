@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
+	import { title } from '$lib/stores/head.js';
 	import type { Item } from '$lib/types/graphql.js';
 	import type { ResultDataItem } from '$lib/types/tarkovle.js';
 	import { FuzzySearch } from '$lib/util/search';
 	import { Confetti } from 'svelte-confetti';
+
+	$title = 'Item';
+
 	export let data;
 
 	const fuzzySearch = new FuzzySearch<Item<null>>(data.items.items);
