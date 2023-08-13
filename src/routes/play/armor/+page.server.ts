@@ -66,8 +66,8 @@ const dataPointInfo: DataPointInfo<Armor>[] = [
 
 /** @type {PageServerLoad} */
 export async function load({ cookies }) {
-	cookies.delete('data');
-	const userData = verifyJwtToken<ResultData>(cookies.get('data'));
+	cookies.delete('dataArmor');
+	const userData = verifyJwtToken<ResultData>(cookies.get('dataArmor'));
 
 	if (userData?.won) {
 		return {
@@ -124,6 +124,7 @@ export async function load({ cookies }) {
 	};
 }
 
+/** @type {import('./$types').Actions} */
 export const actions = {
 	select: async ({ request, cookies }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
@@ -142,7 +143,7 @@ export const actions = {
 			isWon = true;
 		}
 
-		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('data'));
+		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataArmor'));
 
 		const { token } = createJwtToken<Partial<ResultData>>({
 			won: isWon,
@@ -155,7 +156,7 @@ export const actions = {
 		});
 
 		if (token) {
-			cookies.set('data', token);
+			cookies.set('dataArmor', token);
 		}
 
 		return {

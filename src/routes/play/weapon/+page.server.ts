@@ -1,6 +1,5 @@
 import { request, gql } from 'graphql-request';
 import type { GraphQlResponse } from '$lib/types/graphql';
-import type { Armor } from '$lib/models/armor';
 import type { DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
@@ -69,8 +68,8 @@ const dataPointInfo: DataPointInfo<Weapon>[] = [
 
 /** @type {PageServerLoad} */
 export async function load({ cookies }) {
-	cookies.delete('data');
-	const userData = verifyJwtToken<ResultData>(cookies.get('data'));
+	cookies.delete('dataWeapon');
+	const userData = verifyJwtToken<ResultData>(cookies.get('dataWeapon'));
 
 	if (userData?.won) {
 		return {
@@ -133,6 +132,7 @@ export async function load({ cookies }) {
 	};
 }
 
+/** @type {import('./$types').Actions} */
 export const actions = {
 	select: async ({ request, cookies }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
@@ -151,7 +151,7 @@ export const actions = {
 			isWon = true;
 		}
 
-		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('data'));
+		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataWeapon'));
 
 		const { token } = createJwtToken<Partial<ResultData>>({
 			won: isWon,
@@ -164,7 +164,7 @@ export const actions = {
 		});
 
 		if (token) {
-			cookies.set('data', token);
+			cookies.set('dataWeapon', token);
 		}
 
 		return {

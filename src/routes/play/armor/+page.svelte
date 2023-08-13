@@ -163,27 +163,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	@keyframes RevealBanner {
-		0% {
-			opacity: 0;
-			transform: scale(0.3);
-		}
-
-		85% {
-			opacity: 1;
-			transform: scale(1.1);
-		}
-
-		100% {
-			transform: scale(1);
-		}
-	}
-
-	.reveal-banner {
-		animation-name: RevealBanner;
-		animation-duration: 0.5s;
-		animation-timing-function: ease;
-	}
-</style>

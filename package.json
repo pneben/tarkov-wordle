@@ -38,11 +38,12 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@sveltejs/adapter-auto": "^2.0.0",
 		"graphql": "^16.7.1",
 		"graphql-request": "^6.1.0",
+		"jimp": "^0.22.10",
 		"jsonwebtoken": "^9.0.1",
 		"svelte-confetti": "^1.2.4",
-		"svelte-sound": "^0.5.0",
-		"@sveltejs/adapter-auto": "^2.0.0"
+		"svelte-sound": "^0.5.0"
 	}
 }

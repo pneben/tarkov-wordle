@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import logo from '$lib/assets/tarkovdle-logo.png';
+	import { navigating } from '$app/stores';
 </script>
 
 <div class="flex w-full min-h-screen h-screen dark:bg-base-100 bg-base-200">
@@ -8,7 +9,11 @@
 		<img src={logo} alt="" />
 	</a>
 	<div id="content-container" class="flex w-full h-full max-h-screen items-center justify-center">
-		<slot />
+		{#if $navigating}
+			<span class="loading loading-bars loading-lg text-primary" />
+		{:else}
+			<slot />
+		{/if}
 	</div>
 </div>
 

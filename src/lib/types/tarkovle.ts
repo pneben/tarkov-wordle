@@ -1,4 +1,5 @@
 import type { Armor } from '$lib/models/armor';
+import type { Item } from './graphql';
 
 export type ResultPointVariant = 'false' | 'true' | 'higher' | 'lower' | 'partial-true';
 
@@ -25,4 +26,12 @@ export type DataPointInfo<T> = {
 	type: string;
 	value: (obj: T) => string | string[] | number | undefined;
 	format?: (val: string | string[] | number | undefined, object: T) => string;
+};
+
+export type ResultDataItem = {
+	won: boolean;
+	imgSrc: string;
+	totalGuesses: number;
+	pixelate?: number;
+	item?: Item<null>;
 };
