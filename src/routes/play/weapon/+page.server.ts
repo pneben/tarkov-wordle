@@ -1,14 +1,17 @@
 import { request, gql } from 'graphql-request';
 import type { GraphQlResponse } from '$lib/types/graphql';
-import type { DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
+import type { CookieData, DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
 import type { Weapon } from '$lib/models/weapon.js';
 import { getCaliberName } from '$lib/util/ammo';
-import { generateUserId } from '$lib/util/user.js';
+import { Logger } from '$lib/Logger';
+import { ActionFailure } from '@sveltejs/kit';
+
+const logger = new Logger('play/weapon/server');
 
 let weapons: Weapon[];
-let searchedWeapon: Record<string, Weapon> = {};
+const searchedWeapons: Record<string, Weapon> = {};
 
 const dataPointInfo: DataPointInfo<Weapon>[] = [
 	{
@@ -67,31 +70,29 @@ const dataPointInfo: DataPointInfo<Weapon>[] = [
 	}
 ];
 
-/** @type {PageServerLoad} */
-export async function load({ cookies }) {
-	const userData = verifyJwtToken<ResultData>(cookies.get('dataWeapon'));
-
-	if (!userData) {
-		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataWeapon'));
-
-		const { token } = createJwtToken<Partial<ResultData>>({
-			won: false,
-			totalGuesses: 0,
-			userId: generateUserId()
-		});
-
-		if (token) {
-			cookies.set('dataWeapon', token);
-		}
+const createSearchedWeapon = (userId?: string) => {
+	if (userId) {
+		searchedWeapons[userId] = weapons[Math.floor(Math.random() * weapons.length)];
+		return searchedWeapons[userId];
 	}
+	return undefined;
+};
 
-	if (userData?.won) {
-		cookies.delete('dataWeapon');
+const getSearchedWeapon = (userId?: string) => {
+	if (userId) {
+		return searchedWeapons[userId];
+	}
+	return undefined;
+};
+
+/** @type {PageServerLoad} */
+export async function load({ cookies, locals }) {
+	if (locals.user.weapon.won) {
 		return {
-			isWon: userData.won,
-			item: userData.item,
-			dataPoints: userData.dataPoints,
-			totalGuesses: userData.totalGuesses,
+			isWon: locals.user.weapon.won,
+			item: locals.user.weapon.item,
+			dataPoints: locals.user.weapon.dataPoints,
+			totalGuesses: locals.user.weapon.totalGuesses,
 			weapons: { items: [] }
 		};
 	}
@@ -137,12 +138,16 @@ export async function load({ cookies }) {
 		query
 	);
 
-	weapons = result.items.filter(
-		(x) => x.types.indexOf('preset') === -1 && !x.shortName.includes('Default')
-	);
+	if (result) {
+		weapons = result.items.filter(
+			(x) => x.types.indexOf('preset') === -1 && !x.shortName.includes('Default')
+		);
 
-	if (userData?.userId) {
-		searchedWeapon[userData?.userId] = weapons[Math.floor(Math.random() * weapons.length)];
+		if (locals.user.userId) {
+			createSearchedWeapon(locals.user.userId);
+		}
+	} else {
+		logger.error('Could not load Weapons from GraphQL', { query });
 	}
 
 	return {
@@ -152,14 +157,21 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	select: async ({ request, cookies }): Promise<ResultData | false> => {
+	select: async ({ request, cookies, locals }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
 		const weapon = weapons.find((x) => x.id === id);
 		if (!weapon) return false;
 
 		let isWon = false;
 
-		const dataPoints = generateDataPoints<Weapon>(dataPointInfo, weapon, searchedWeapon);
+		const shouldWeapon = getSearchedWeapon(locals.user.userId);
+
+		if (!shouldWeapon) {
+			logger.warn('Could not find weapon', { searchedWeapons, userId: locals.user.userId });
+			throw new ActionFailure(404, { message: 'Could not find weapon' });
+		}
+
+		const dataPoints = generateDataPoints<Weapon>(dataPointInfo, weapon, shouldWeapon);
 
 		/**
 		 * In case a Item is guessed, which has the correct specifications, but has a similar ID
@@ -169,25 +181,36 @@ export const actions = {
 			isWon = true;
 		}
 
-		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataWeapon'));
-
-		const { token } = createJwtToken<Partial<ResultData>>({
-			won: isWon,
-			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
-			dataPoints,
-			item: {
-				id: weapon.id,
-				name: weapon.name
+		const { token } = createJwtToken<CookieData>({
+			...locals.user,
+			weapon: {
+				won: isWon,
+				totalGuesses: locals.user.weapon.totalGuesses ? locals.user.weapon.totalGuesses + 1 : 1,
+				dataPoints,
+				item: {
+					id: weapon.properties?.defaultPreset?.id || weapon.id,
+					name: weapon.name
+				}
 			}
 		});
 
 		if (token) {
-			cookies.set('dataWeapon', token);
+			cookies.set('user', token);
 		}
+
+		logger.log('Data', {
+			won: isWon,
+			totalGuesses: locals.user.weapon.totalGuesses ? locals.user.weapon.totalGuesses + 1 : 1,
+			dataPoints,
+			item: {
+				id: weapon.properties?.defaultPreset?.id || weapon.id,
+				name: weapon.name
+			}
+		});
 
 		return {
 			won: isWon,
-			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
+			totalGuesses: locals.user.weapon.totalGuesses ? locals.user.weapon.totalGuesses + 1 : 1,
 			item: {
 				id: weapon.properties?.defaultPreset?.id || weapon.id,
 				name: weapon.shortName

@@ -4,9 +4,14 @@ import type { Armor } from '$lib/models/armor';
 import type { DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
+import { Logger } from '$lib/Logger';
+import { ActionFailure } from '@sveltejs/kit';
+
+const logger = new Logger('play/armor/server');
 
 let armors: Armor[];
-let searchedArmor: Armor;
+
+const searchedArmors: Record<string, Armor> = {};
 
 const dataPointInfo: DataPointInfo<Armor>[] = [
 	{
@@ -64,8 +69,23 @@ const dataPointInfo: DataPointInfo<Armor>[] = [
 	}
 ];
 
+const createSearchedArmor = (userId?: string) => {
+	if (userId) {
+		searchedArmors[userId] = armors[Math.floor(Math.random() * armors.length)];
+		return searchedArmors[userId];
+	}
+	return undefined;
+};
+
+const getSearchedArmor = (userId?: string) => {
+	if (userId) {
+		return searchedArmors[userId];
+	}
+	return undefined;
+};
+
 /** @type {PageServerLoad} */
-export async function load({ cookies }) {
+export async function load({ cookies, locals }) {
 	cookies.delete('dataArmor');
 	const userData = verifyJwtToken<ResultData>(cookies.get('dataArmor'));
 
@@ -116,8 +136,15 @@ export async function load({ cookies }) {
 		query
 	);
 
-	armors = result.items;
-	searchedArmor = armors[Math.floor(Math.random() * armors.length)];
+	if (result) {
+		armors = result.items;
+
+		if (locals.user.userId) {
+			createSearchedArmor(locals.user.userId);
+		}
+	} else {
+		logger.error('Could not load Weapons from GraphQL', { query });
+	}
 
 	return {
 		armors: result
@@ -126,14 +153,21 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	select: async ({ request, cookies }): Promise<ResultData | false> => {
+	select: async ({ request, cookies, locals }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
 		const armor = armors.find((x) => x.id === id);
 		if (!armor) return false;
 
 		let isWon = false;
 
-		const dataPoints = generateDataPoints<Armor>(dataPointInfo, armor, searchedArmor);
+		const shouldArmor = getSearchedArmor(locals.user.userId);
+
+		if (!shouldArmor) {
+			logger.warn('Could not find weapon', { shouldArmor, userId: locals.user.userId });
+			throw new ActionFailure(404, { message: 'Could not find weapon' });
+		}
+
+		const dataPoints = generateDataPoints<Armor>(dataPointInfo, armor, shouldArmor);
 
 		/**
 		 * In case a Item is guessed, which has the correct specifications, but has a similar ID

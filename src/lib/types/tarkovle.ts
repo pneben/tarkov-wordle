@@ -18,8 +18,14 @@ export interface ResultData {
 	won: boolean;
 	totalGuesses: number;
 	item: ResultItemData;
-	userId: string;
 	dataPoints: DataPoint[];
+}
+
+export interface CookieData {
+	userId?: string;
+	weapon: Partial<ResultData>;
+	armor: Partial<ResultData>;
+	item: Partial<ResultData>;
 }
 
 export type DataPointInfo<T> = {
