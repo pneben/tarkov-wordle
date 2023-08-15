@@ -18,9 +18,10 @@ const defaults: CookieData = {
 		won: false
 	},
 	item: {
-		dataPoints: [],
 		totalGuesses: 0,
-		won: false
+		won: false,
+		imgSrc: undefined,
+		pixelate: 3
 	}
 };
 
