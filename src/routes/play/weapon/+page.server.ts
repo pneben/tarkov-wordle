@@ -12,7 +12,7 @@ import { generateDataPoints } from '$lib/util/datapoints.js';
 import type { Weapon } from '$lib/models/weapon.js';
 import { getCaliberName } from '$lib/util/ammo';
 import { Logger } from '$lib/Logger';
-import { ActionFailure } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 const logger = new Logger('play/weapon/server');
 
@@ -182,7 +182,7 @@ export const actions = {
 
 		if (!shouldWeapon) {
 			logger.warn('Could not find weapon', { searchedWeapons, userId: locals.user.userId });
-			throw new ActionFailure(404, { message: 'Could not find weapon' });
+			throw error(404, { message: 'Could not find weapon' });
 		}
 
 		const dataPoints = generateDataPoints<Weapon>(dataPointInfo, weapon, shouldWeapon);

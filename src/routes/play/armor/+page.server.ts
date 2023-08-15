@@ -11,7 +11,7 @@ import type {
 import { createJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
 import { Logger } from '$lib/Logger';
-import { ActionFailure } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 const logger = new Logger('play/armor/server');
 
@@ -182,7 +182,7 @@ export const actions = {
 
 		if (!shouldArmor) {
 			logger.warn('Could not find armor', { searchedArmors, userId: locals.user.userId });
-			throw new ActionFailure(404, { message: 'Could not find armor' });
+			throw error(404, { message: 'Could not find armor' });
 		}
 
 		const dataPoints = generateDataPoints<Armor>(dataPointInfo, armor, shouldArmor);
