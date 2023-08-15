@@ -4,6 +4,7 @@
 
 :root {
 	--p: 43 18% 53%;
+	--pf: 36 18% 40%;
 }
 
 @keyframes RevealBanner {

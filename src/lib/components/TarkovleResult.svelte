@@ -27,7 +27,7 @@
 </script>
 
 <div class="flex gap-x-4 max-w-[800px] min-w-[800px] justify-center">
-	<div class="flex flex-col justify-end">
+	<div class="reveal-fadein flex flex-col justify-end">
 		<div
 			class="bg-no-repeat bg-contain bg-center flex flex-col bg-[#161616] p-1 max-w-[110px] w-[110px] outline-2 outline-offset-2 outline outline-arrowtown-900 shadow-md text-black rounded-md aspect-square"
 			style="background-image: url(https://assets.tarkov.dev/{itemData.id}-512.webp);"
@@ -40,7 +40,7 @@
 		</div>
 	</div>
 	{#each dataPoints as point}
-		<div class="reveal flex flex-col gap-2">
+		<div class="reveal-grayscale flex flex-col gap-2">
 			{#if showLabel}
 				<div class="text-center">
 					{point.label}
@@ -71,7 +71,7 @@
 </div>
 
 <style>
-	@keyframes FadeIn {
+	@keyframes FadeInGrayScale {
 		0% {
 			opacity: 0;
 			transform: scale(0.5);
@@ -89,24 +89,44 @@
 		}
 	}
 
-	.reveal {
+	@keyframes FadeIn {
+		0% {
+			opacity: 0;
+			transform: scale(0.5);
+		}
+		60% {
+			opacity: 1;
+			transform: scale(1.05);
+		}
+		100% {
+			transform: scale(1);
+			transform: rotateY(0deg);
+		}
+	}
+
+	.reveal-fadein {
 		animation: FadeIn 0.4s linear;
 		animation-fill-mode: both;
 	}
 
-	.reveal:nth-child(2) {
+	.reveal-grayscale {
+		animation: FadeInGrayScale 0.4s linear;
+		animation-fill-mode: both;
+	}
+
+	.reveal-grayscale:nth-child(2) {
 		animation-delay: 0.5s;
 	}
-	.reveal:nth-child(3) {
+	.reveal-grayscale:nth-child(3) {
 		animation-delay: 1s;
 	}
-	.reveal:nth-child(4) {
+	.reveal-grayscale:nth-child(4) {
 		animation-delay: 1.5s;
 	}
-	.reveal:nth-child(5) {
+	.reveal-grayscale:nth-child(5) {
 		animation-delay: 2s;
 	}
-	.reveal:nth-child(6) {
+	.reveal-grayscale:nth-child(6) {
 		animation-delay: 2.5s;
 	}
 </style>

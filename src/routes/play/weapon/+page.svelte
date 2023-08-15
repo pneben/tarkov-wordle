@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { Confetti } from 'svelte-confetti';
-	import { deserialize, enhance } from '$app/forms';
+	import { deserialize } from '$app/forms';
 	import TarkovleResult from '$lib/components';
-	import type { Armor } from '$lib/models/armor.js';
 	import type { ResultData } from '$lib/types/tarkovle';
 	import { ChevronDoubleUp, Icon } from 'svelte-hero-icons';
 	import type { Weapon } from '$lib/models/weapon.js';
 	import { title } from '$lib/stores/head.js';
+	import { FuzzySearch } from '$lib/util/search.js';
 
 	$title = 'Weapon';
 
 	export let data;
+
+	const fuzzySearch = new FuzzySearch<Weapon>(data.weapons?.items || []);
 
 	const untrackedData = Object.assign({}, data);
 
@@ -21,20 +23,27 @@
 	let selectedId: string;
 	let guessBlocked = false;
 	let showWinBanner = false;
-	let search: string;
 	let totalGuesses = 0;
-	let filteredWeapons: Weapon[] = untrackedData.weapons.items;
+	let weapons: Weapon[] = [];
+	let search: string;
+	$: {
+		if (search) {
+			weapons = fuzzySearch.search(search, ['name']);
+		} else {
+			weapons = data.weapons?.items || [];
+		}
+	}
 
 	const onAlreadyWon = () => {
 		if (showWinBanner) return;
 		showWinBanner = true;
 		totalGuesses = untrackedData.totalGuesses || 1;
-		if (data.item && untrackedData.dataPoints) {
+		if (data.item && untrackedData.dataPoints && untrackedData.item) {
 			guesses.push({
 				dataPoints: untrackedData.dataPoints,
 				item: untrackedData.item,
-				totalGuesses: untrackedData.totalGuesses,
-				won: untrackedData.isWon
+				totalGuesses: untrackedData.totalGuesses || 1,
+				won: untrackedData.isWon || false
 			});
 			guesses = guesses;
 		}
@@ -43,13 +52,6 @@
 	if (data.isWon) {
 		onAlreadyWon();
 	}
-
-	const searchUpdate = () => {
-		const tmp = untrackedData.weapons.items.filter((x) =>
-			search ? x.shortName.toLowerCase() === search.toLowerCase() : true
-		);
-		filteredWeapons = tmp;
-	};
 
 	const selectArmor = (id: string) => {
 		(document.activeElement as HTMLElement)?.blur();
@@ -101,7 +103,6 @@
 					class="input input-bordered input-primary w-[300px]"
 					disabled={guessBlocked}
 					bind:value={search}
-					on:input={searchUpdate}
 				/>
 				<input name="id" type="text" value={selectedId} hidden />
 
@@ -109,7 +110,7 @@
 					tabindex="-1"
 					class="block dropdown-content w-[300px] max-h-[300px] overflow-y-scroll z-[1] menu p-2 mt-2 shadow bg-base-100 rounded-box"
 				>
-					{#each filteredWeapons as weapon}
+					{#each weapons as weapon}
 						<li>
 							<button class="flex" on:click={() => selectArmor(weapon.id)}>
 								<img

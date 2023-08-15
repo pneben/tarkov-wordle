@@ -21,6 +21,13 @@ export interface ResultData {
 	dataPoints: DataPoint[];
 }
 
+export interface CookieData {
+	userId?: string;
+	weapon: Partial<ResultData>;
+	armor: Partial<ResultData>;
+	item: Partial<ResultDataItem>;
+}
+
 export type DataPointInfo<T> = {
 	label: string;
 	type: string;

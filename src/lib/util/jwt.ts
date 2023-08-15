@@ -19,7 +19,11 @@ export const verifyJwtToken = <T>(token?: string): T | null => {
 	if (!env.SECRET_JWT) {
 		throw new Error('No SECRET_JWT set');
 	}
-	const data = jwt.verify(token, env.SECRET_JWT) as T;
+	try {
+		const data = jwt.verify(token, env.SECRET_JWT) as T;
 
-	return data;
+		return data;
+	} catch (e) {
+		throw new Error('Could not verify JWT');
+	}
 };

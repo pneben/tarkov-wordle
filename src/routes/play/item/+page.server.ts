@@ -1,23 +1,32 @@
+import { Logger } from '$lib/Logger';
 import type { GraphQlResponse, Item } from '$lib/types/graphql';
-import type { ResultDataItem } from '$lib/types/tarkovle';
+import type { CookieData, ResultDataItem } from '$lib/types/tarkovle';
 import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
 import request, { gql } from 'graphql-request';
 import Jimp from 'jimp';
 
-let searchedItem: Item<null>;
+const logger = new Logger('play/item/server');
+
+const searchedItems: Record<string, Item<null>> = {};
 
 const DEFAULT_PIXELATION = 3 as const;
+
+let items: Item<null>[] = [];
 
 const pixelateImage = async (id: string, strength: number): Promise<string> => {
 	return new Promise((resolve) => {
 		Jimp.read(`https://assets.tarkov.dev/${id}-grid-image.jpg`, (err, img) => {
-			if (err) throw new Error('Could not load image');
+			if (err) {
+				logger.error('Could not get Image', err);
+			}
 			img.scale(img.getHeight() > 100 ? 2 : 3);
 			if (strength > 0) {
 				img.pixelate(Math.floor(Math.min(img.getHeight(), img.getWidth()) / strength));
 			}
 			img.getBase64(Jimp.AUTO, (err, res) => {
-				if (err) throw err;
+				if (err) {
+					logger.error('Could not get Base64 Image', err);
+				}
 
 				resolve(res);
 			});
@@ -25,8 +34,30 @@ const pixelateImage = async (id: string, strength: number): Promise<string> => {
 	});
 };
 
+const getSearchedItem = (userId?: string) => {
+	if (userId) {
+		return searchedItems[userId];
+	}
+	return undefined;
+};
+
+const createSearchedItem = (userId?: string) => {
+	if (userId) {
+		const recentArmor = getSearchedItem(userId);
+		if (recentArmor) {
+			searchedItems[userId] = [...items].filter((x) => x.id !== recentArmor.id)[
+				Math.floor(Math.random() * items.length)
+			];
+		} else {
+			searchedItems[userId] = items[Math.floor(Math.random() * items.length)];
+		}
+		return searchedItems[userId];
+	}
+	return undefined;
+};
+
 /** @type {PageServerLoad} */
-export async function load({ cookies }) {
+export async function load({ cookies, locals }) {
 	const userData = verifyJwtToken<Partial<ResultDataItem>>(cookies.get('dataItem'));
 
 	const { token } = createJwtToken<Partial<ResultDataItem>>({
@@ -54,9 +85,20 @@ export async function load({ cookies }) {
 		query
 	);
 
-	searchedItem = result.items[Math.floor(Math.random() * result.items.length)];
+	if (result) {
+		items = result.items;
 
-	const base64 = await pixelateImage(searchedItem.id, DEFAULT_PIXELATION).catch((e) => {
+		if (locals.user.userId) {
+			createSearchedItem(locals.user.userId);
+		}
+	} else {
+		logger.error('Could not load Armors from GraphQL', { query });
+	}
+
+	const base64 = await pixelateImage(
+		getSearchedItem(locals.user.userId)?.id || '',
+		DEFAULT_PIXELATION
+	).catch((e) => {
 		throw new Error(e);
 	});
 
@@ -69,35 +111,49 @@ export async function load({ cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	select: async ({ request, cookies }): Promise<ResultDataItem | false> => {
+	select: async ({ request, cookies, locals }): Promise<ResultDataItem | false> => {
 		const id = (await request.formData()).get('id');
 
-		const userData = verifyJwtToken<Partial<ResultDataItem>>(cookies.get('dataItem'));
+		const searchedItem = getSearchedItem(locals.user.userId);
+
+		if (!searchedItem) {
+			return {
+				imgSrc: '',
+				totalGuesses: (locals.user.item.totalGuesses || 0) + 1,
+				won: false
+			};
+		}
 
 		const correct = id === searchedItem.id;
 
 		const base64 = await pixelateImage(
 			searchedItem.id,
-			correct ? 0 : (userData?.pixelate || DEFAULT_PIXELATION) + 3
+			correct ? 0 : (locals.user.item.pixelate || DEFAULT_PIXELATION) + 3
 		).catch((e) => {
 			throw new Error(e);
 		});
 
-		const { token } = createJwtToken<Partial<ResultDataItem>>({
-			won: correct,
-			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
-			item: correct ? searchedItem : undefined,
-			pixelate: !correct ? (userData?.pixelate || DEFAULT_PIXELATION) + 3 : DEFAULT_PIXELATION
+		const { token } = createJwtToken<CookieData>({
+			...locals.user,
+			item: {
+				won: correct,
+				totalGuesses: locals.user.item.totalGuesses ? locals.user.item.totalGuesses + 1 : 1,
+				item: correct ? searchedItem : undefined,
+				pixelate: !correct
+					? (locals.user.item.pixelate || DEFAULT_PIXELATION) + 3
+					: DEFAULT_PIXELATION
+			}
 		});
 
 		if (token) {
-			cookies.set('dataItem', token);
+			cookies.set('user', token);
 		}
 
 		if (correct) {
+			logger.log(`User ${locals.user.userId} has won. Item was ${searchedItem.name}`);
 			return {
 				imgSrc: base64,
-				totalGuesses: (userData?.totalGuesses || 0) + 1,
+				totalGuesses: (locals.user.item.totalGuesses || 0) + 1,
 				won: true,
 				item: searchedItem
 			};
@@ -105,7 +161,7 @@ export const actions = {
 
 		return {
 			imgSrc: base64,
-			totalGuesses: (userData?.totalGuesses || 0) + 1,
+			totalGuesses: (locals.user.item.totalGuesses || 0) + 1,
 			won: false
 		};
 	}

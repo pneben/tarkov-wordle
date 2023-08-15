@@ -7,10 +7,13 @@
 	import { ChevronDoubleUp, Icon } from 'svelte-hero-icons';
 	import { invalidateAll } from '$app/navigation';
 	import { title } from '$lib/stores/head';
+	import { FuzzySearch } from '$lib/util/search.js';
 
 	$title = 'Armor';
 
 	export let data;
+
+	const fuzzySearch = new FuzzySearch<Armor>(data.armors?.items || []);
 
 	const untrackedData = Object.assign({}, data);
 
@@ -21,23 +24,28 @@
 	let selectedId: string;
 	let guessBlocked = false;
 	let showWinBanner = false;
+	let armors: Armor[] = [];
 	let search: string;
-	let totalGuesses = 0;
+	$: {
+		if (search) {
+			armors = fuzzySearch.search(search, ['name']);
+		} else {
+			armors = data.armors?.items || [];
+		}
+	}
 
-	let filteredArmor: Armor[] = untrackedData.armors.items.filter((x) =>
-		search ? x.shortName.toLowerCase() === search.toLowerCase() : true
-	);
+	let totalGuesses = 0;
 
 	const onAlreadyWon = () => {
 		if (showWinBanner) return;
 		showWinBanner = true;
 		totalGuesses = untrackedData.totalGuesses || 1;
-		if (data.item && untrackedData.dataPoints) {
+		if (data.item && untrackedData.dataPoints && untrackedData.item) {
 			guesses.push({
 				dataPoints: untrackedData.dataPoints,
 				item: untrackedData.item,
-				totalGuesses: untrackedData.totalGuesses,
-				won: untrackedData.isWon
+				totalGuesses: untrackedData.totalGuesses || 1,
+				won: untrackedData.isWon || false
 			});
 			guesses = guesses;
 		}
@@ -46,13 +54,6 @@
 	if (data.isWon) {
 		onAlreadyWon();
 	}
-
-	const searchUpdate = () => {
-		const tmp = untrackedData.armors.items.filter((x) =>
-			search ? x.shortName.toLowerCase() === search.toLowerCase() : true
-		);
-		filteredArmor = tmp;
-	};
 
 	const selectArmor = (id: string) => {
 		(document.activeElement as HTMLElement)?.blur();
@@ -91,6 +92,22 @@
 
 		addItem(result.data);
 	}
+
+	async function handleRestart(this: HTMLFormElement, e: SubmitEvent) {
+		const formData = new FormData(this);
+
+		const response = await fetch(this.action, {
+			method: 'POST',
+			body: formData
+		});
+
+		invalidateAll();
+
+		showWinBanner = false;
+		guessBlocked = false;
+		totalGuesses = data.totalGuesses || 0;
+		guesses = [];
+	}
 </script>
 
 <div class="flex flex-col h-2/3">
@@ -104,7 +121,6 @@
 					class="input input-bordered input-primary w-[300px]"
 					disabled={guessBlocked}
 					bind:value={search}
-					on:input={searchUpdate}
 				/>
 				<input name="id" type="text" value={selectedId} hidden />
 
@@ -112,7 +128,7 @@
 					tabindex="-1"
 					class="block dropdown-content w-[300px] max-h-[300px] overflow-y-scroll z-[1] menu p-2 mt-2 shadow bg-base-100 rounded-box"
 				>
-					{#each filteredArmor as armor}
+					{#each armors as armor}
 						<li>
 							<button class="flex" on:click={() => selectArmor(armor.id)}>
 								<img class="w-[64px]" src={armor.image512pxLink} alt="" />
@@ -162,6 +178,14 @@
 					It took you {totalGuesses}
 					{totalGuesses > 1 ? 'guesses' : 'guess'} to finish
 				</div>
+				<form
+					class="mt-4"
+					method="POST"
+					action="?/restart"
+					on:submit|preventDefault={handleRestart}
+				>
+					<button class="btn btn-primary" type="submit"> Play again </button>
+				</form>
 			</div>
 		{/if}
 	</div>
