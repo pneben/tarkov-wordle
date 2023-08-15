@@ -1,8 +1,14 @@
 import { request, gql } from 'graphql-request';
 import type { GraphQlResponse } from '$lib/types/graphql';
 import type { Armor } from '$lib/models/armor';
-import type { DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
-import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
+import type {
+	CookieData,
+	DataPoint,
+	DataPointInfo,
+	ResultData,
+	ResultItemData
+} from '$lib/types/tarkovle.js';
+import { createJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
 import { Logger } from '$lib/Logger';
 import { ActionFailure } from '@sveltejs/kit';
@@ -69,14 +75,6 @@ const dataPointInfo: DataPointInfo<Armor>[] = [
 	}
 ];
 
-const createSearchedArmor = (userId?: string) => {
-	if (userId) {
-		searchedArmors[userId] = armors[Math.floor(Math.random() * armors.length)];
-		return searchedArmors[userId];
-	}
-	return undefined;
-};
-
 const getSearchedArmor = (userId?: string) => {
 	if (userId) {
 		return searchedArmors[userId];
@@ -84,17 +82,37 @@ const getSearchedArmor = (userId?: string) => {
 	return undefined;
 };
 
-/** @type {PageServerLoad} */
-export async function load({ cookies, locals }) {
-	cookies.delete('dataArmor');
-	const userData = verifyJwtToken<ResultData>(cookies.get('dataArmor'));
+const createSearchedArmor = (userId?: string) => {
+	if (userId) {
+		const recentArmor = getSearchedArmor(userId);
+		if (recentArmor) {
+			searchedArmors[userId] = [...armors].filter((x) => x.id !== recentArmor.id)[
+				Math.floor(Math.random() * armors.length)
+			];
+		} else {
+			searchedArmors[userId] = armors[Math.floor(Math.random() * armors.length)];
+		}
+		return searchedArmors[userId];
+	}
+	return undefined;
+};
 
-	if (userData?.won) {
+/** @type {PageServerLoad} */
+export async function load({ locals }): Promise<{
+	isWon?: true;
+	item?: ResultItemData | undefined;
+	dataPoints?: DataPoint[] | undefined;
+	totalGuesses?: number | undefined;
+	armors?: {
+		items: Armor[];
+	};
+}> {
+	if (locals.user.armor.won) {
 		return {
-			isWon: userData.won,
-			item: userData.item,
-			dataPoints: userData.dataPoints,
-			totalGuesses: userData.totalGuesses,
+			isWon: locals.user.armor.won,
+			item: locals.user.armor.item,
+			dataPoints: locals.user.armor.dataPoints,
+			totalGuesses: locals.user.armor.totalGuesses,
 			armors: { items: [] }
 		};
 	}
@@ -143,7 +161,7 @@ export async function load({ cookies, locals }) {
 			createSearchedArmor(locals.user.userId);
 		}
 	} else {
-		logger.error('Could not load Weapons from GraphQL', { query });
+		logger.error('Could not load Armors from GraphQL', { query });
 	}
 
 	return {
@@ -163,8 +181,8 @@ export const actions = {
 		const shouldArmor = getSearchedArmor(locals.user.userId);
 
 		if (!shouldArmor) {
-			logger.warn('Could not find weapon', { shouldArmor, userId: locals.user.userId });
-			throw new ActionFailure(404, { message: 'Could not find weapon' });
+			logger.warn('Could not find armor', { searchedArmors, userId: locals.user.userId });
+			throw new ActionFailure(404, { message: 'Could not find armor' });
 		}
 
 		const dataPoints = generateDataPoints<Armor>(dataPointInfo, armor, shouldArmor);
@@ -175,32 +193,50 @@ export const actions = {
 		 */
 		if (dataPoints.filter((x) => x.variant === 'true').length === dataPoints.length) {
 			isWon = true;
+			logger.log(`User ${locals.user.userId} has won. Item was ${armor.name}`);
 		}
 
-		const userData = verifyJwtToken<Partial<ResultData>>(cookies.get('dataArmor'));
-
-		const { token } = createJwtToken<Partial<ResultData>>({
-			won: isWon,
-			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
-			dataPoints,
-			item: {
-				id: armor.id,
-				name: armor.name
+		const { token } = createJwtToken<CookieData>({
+			...locals.user,
+			armor: {
+				won: isWon,
+				totalGuesses: locals.user.armor.totalGuesses ? locals.user.armor.totalGuesses + 1 : 1,
+				dataPoints,
+				item: {
+					id: armor.id,
+					name: armor.name
+				}
 			}
 		});
 
 		if (token) {
-			cookies.set('dataArmor', token);
+			cookies.set('user', token);
 		}
 
 		return {
 			won: isWon,
-			totalGuesses: userData?.totalGuesses ? userData.totalGuesses + 1 : 1,
+			totalGuesses: locals.user.armor.totalGuesses ? locals.user.armor.totalGuesses + 1 : 1,
 			item: {
 				id: armor.id,
 				name: armor.shortName
 			},
 			dataPoints
 		};
+	},
+	restart: async ({ cookies, locals }) => {
+		const { token } = createJwtToken<CookieData>({
+			...locals.user,
+			armor: {
+				won: false,
+				totalGuesses: 0,
+				dataPoints: []
+			}
+		});
+
+		if (token) {
+			cookies.set('user', token);
+		}
+
+		return true;
 	}
 };

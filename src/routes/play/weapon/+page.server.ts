@@ -1,7 +1,13 @@
 import { request, gql } from 'graphql-request';
 import type { GraphQlResponse } from '$lib/types/graphql';
-import type { CookieData, DataPointInfo, ResultData } from '$lib/types/tarkovle.js';
-import { createJwtToken, verifyJwtToken } from '$lib/util/jwt';
+import type {
+	CookieData,
+	DataPoint,
+	DataPointInfo,
+	ResultData,
+	ResultItemData
+} from '$lib/types/tarkovle.js';
+import { createJwtToken } from '$lib/util/jwt';
 import { generateDataPoints } from '$lib/util/datapoints.js';
 import type { Weapon } from '$lib/models/weapon.js';
 import { getCaliberName } from '$lib/util/ammo';
@@ -86,7 +92,15 @@ const getSearchedWeapon = (userId?: string) => {
 };
 
 /** @type {PageServerLoad} */
-export async function load({ cookies, locals }) {
+export async function load({ locals }): Promise<{
+	isWon?: true;
+	item?: ResultItemData | undefined;
+	dataPoints?: DataPoint[] | undefined;
+	totalGuesses?: number | undefined;
+	weapons?: {
+		items: Weapon[];
+	};
+}> {
 	if (locals.user.weapon.won) {
 		return {
 			isWon: locals.user.weapon.won,
@@ -179,6 +193,7 @@ export const actions = {
 		 */
 		if (dataPoints.filter((x) => x.variant === 'true').length === dataPoints.length) {
 			isWon = true;
+			logger.log(`User ${locals.user.userId} has won. Item was ${weapon.name}`);
 		}
 
 		const { token } = createJwtToken<CookieData>({
@@ -197,16 +212,6 @@ export const actions = {
 		if (token) {
 			cookies.set('user', token);
 		}
-
-		logger.log('Data', {
-			won: isWon,
-			totalGuesses: locals.user.weapon.totalGuesses ? locals.user.weapon.totalGuesses + 1 : 1,
-			dataPoints,
-			item: {
-				id: weapon.properties?.defaultPreset?.id || weapon.id,
-				name: weapon.name
-			}
-		});
 
 		return {
 			won: isWon,

@@ -31,7 +31,7 @@ export function getUserInformation(cookieData?: string): CookieData {
 	try {
 		isData = verifyJwtToken<CookieData>(cookieData);
 	} catch (e) {
-		console.warn(e);
+		logger.warn(`Couldn't get JWT Data`, e);
 	}
 
 	userData = { ...userData, ...isData };

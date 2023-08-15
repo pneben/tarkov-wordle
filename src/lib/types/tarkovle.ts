@@ -25,7 +25,7 @@ export interface CookieData {
 	userId?: string;
 	weapon: Partial<ResultData>;
 	armor: Partial<ResultData>;
-	item: Partial<ResultData>;
+	item: Partial<ResultDataItem>;
 }
 
 export type DataPointInfo<T> = {
