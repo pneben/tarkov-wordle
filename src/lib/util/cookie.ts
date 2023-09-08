@@ -10,23 +10,26 @@ const defaults: CookieData = {
 	armor: {
 		dataPoints: [],
 		totalGuesses: 0,
-		won: false
+		won: false,
+		streak: 0
 	},
 	weapon: {
 		dataPoints: [],
 		totalGuesses: 0,
-		won: false
+		won: false,
+		streak: 0
 	},
 	item: {
 		totalGuesses: 0,
 		won: false,
 		imgSrc: undefined,
-		pixelate: 3
+		pixelate: 3,
+		streak: 0
 	}
 };
 
 export function getUserInformation(cookieData?: string): CookieData {
-	let userData: CookieData = defaults;
+	let userData = defaults;
 	let isData: CookieData | null = null;
 
 	try {

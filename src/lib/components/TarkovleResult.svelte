@@ -26,10 +26,12 @@
 	};
 </script>
 
-<div class="flex gap-x-4 max-w-[800px] min-w-[800px] justify-center">
+<div
+	class="tarkovdle-result-wrapper flex gap-x-4 md:max-w-[800px] md:min-w-[800px] max-w-[900px] justify-center"
+>
 	<div class="reveal-fadein flex flex-col justify-end">
 		<div
-			class="bg-no-repeat bg-contain bg-center flex flex-col bg-[#161616] p-1 max-w-[110px] w-[110px] outline-2 outline-offset-2 outline outline-arrowtown-900 shadow-md text-black rounded-md aspect-square"
+			class="bg-no-repeat bg-contain bg-center flex flex-col bg-[#161616] p-1 md:max-w-[110px] md:w-[110px] w-[80px] max-w-[80px] outline-2 outline-offset-2 outline outline-arrowtown-900 shadow-md text-black rounded-md aspect-square"
 			style="background-image: url(https://assets.tarkov.dev/{itemData.id}-512.webp);"
 		>
 			<div
@@ -49,18 +51,22 @@
 			<div
 				class="{variantStyle(
 					point.variant
-				)} flex p-3 max-w-[110px] w-[110px] outline outline-arrowtown-400 outline-offset-2 outline-2 shadow-md text-black rounded-md aspect-square"
+				)} flex p-3 md:max-w-[110px] md:w-[110px] w-[80px] max-w-[80px] outline outline-arrowtown-400 outline-offset-2 outline-2 shadow-md text-black rounded-md aspect-square"
 			>
 				<div class="flex flex-col relative w-full h-full align-middle">
 					{#if point.variant === 'higher' || point.variant === 'lower'}
 						<Icon
 							class=" absolute text-black opacity-20 top-0 left-0"
 							src={point.variant === 'higher' ? ChevronDoubleUp : ChevronDoubleDown}
-							size={'86px'}
+							size={'100%'}
 						/>
 					{/if}
-					<div class="text-white flex items-center justify-center relative w-full h-full">
-						<div class="text-center {point.value.length >= 20 ? 'text-md' : 'text-xl'}">
+					<div class="text-white flex items-center justify-center relative p-1 w-full h-full">
+						<div
+							class="text-center {point.value.length >= 20
+								? 'md:text-md text-xs'
+								: 'md:text-xl text-md'}"
+						>
 							{point.value}
 						</div>
 					</div>

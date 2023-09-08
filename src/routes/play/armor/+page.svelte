@@ -20,7 +20,8 @@
 	export let form: ResultData;
 	$: if (form) addItem(form);
 
-	let guesses: ResultData[] = [];
+	let streak = data.streak;
+	let guesses: Partial<ResultData>[] = [];
 	let selectedId: string;
 	let guessBlocked = false;
 	let showWinBanner = false;
@@ -68,6 +69,7 @@
 			if (form.won) {
 				showWinBanner = true;
 				totalGuesses = form.totalGuesses;
+				streak = form.streak;
 			} else {
 				guessBlocked = false;
 			}
@@ -143,7 +145,7 @@
 		</form>
 	</div>
 	<div
-		class="flex flex-col-reverse rounded-md border border-gray-600 p-2 mt-8 w-[818px] justify-end dark:bg-base-200 bg-base-100"
+		class="flex flex-col-reverse rounded-md border border-gray-600 py-2 px-4 mt-8 w-full justify-end dark:bg-base-200 bg-base-100"
 	>
 		{#if !guesses.length}
 			<div class="flex self-center gap-x-4">
@@ -156,11 +158,13 @@
 		{/if}
 		{#each guesses as guess, index}
 			<div class="mb-4">
-				<TarkovleResult
-					showLabel={index === guesses.length - 1}
-					dataPoints={guess.dataPoints}
-					itemData={guess.item}
-				/>
+				{#if guess.dataPoints?.length && guess.item}
+					<TarkovleResult
+						showLabel={index === guesses.length - 1}
+						dataPoints={guess.dataPoints}
+						itemData={guess.item}
+					/>
+				{/if}
 			</div>
 		{/each}
 		{#if showWinBanner}
@@ -178,13 +182,16 @@
 					It took you {totalGuesses}
 					{totalGuesses > 1 ? 'guesses' : 'guess'} to finish
 				</div>
+				<div class="mt-2 text-xl font-medium text-arrowtown-500">
+					🔥 Streak {streak}
+				</div>
 				<form
 					class="mt-4"
 					method="POST"
 					action="?/restart"
 					on:submit|preventDefault={handleRestart}
 				>
-					<button class="btn btn-primary" type="submit"> Play again </button>
+					<button class="btn btn-primary text-arrowtown-50" type="submit"> Play again </button>
 				</form>
 			</div>
 		{/if}
