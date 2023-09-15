@@ -19,6 +19,7 @@ export interface ResultData {
 	totalGuesses: number;
 	item: ResultItemData;
 	dataPoints: DataPoint[];
+	streak: number;
 }
 
 export interface CookieData {
@@ -41,4 +42,5 @@ export type ResultDataItem = {
 	totalGuesses: number;
 	pixelate?: number;
 	item?: Item<null>;
+	streak?: number;
 };

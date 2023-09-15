@@ -57,17 +57,28 @@ const createSearchedItem = (userId?: string) => {
 };
 
 /** @type {PageServerLoad} */
-export async function load({ cookies, locals }) {
-	const userData = verifyJwtToken<Partial<ResultDataItem>>(cookies.get('dataItem'));
+export async function load({ cookies, locals }): Promise<{
+	imgSrc: string;
+	items: Item<null>[];
+	totalGuesses: number;
+	streak: number;
+	won: boolean;
+}> {
+	if (locals.user.item.won) {
+		let base64: string | undefined = undefined;
+		if (locals.user.item.item?.id) {
+			base64 = await pixelateImage(locals.user.item.item?.id, 0).catch((e) => {
+				throw new Error(e);
+			});
+		}
 
-	const { token } = createJwtToken<Partial<ResultDataItem>>({
-		won: false,
-		totalGuesses: 0,
-		pixelate: DEFAULT_PIXELATION
-	});
-
-	if (token) {
-		cookies.set('dataItem', token);
+		return {
+			imgSrc: base64 ?? '',
+			items: [],
+			totalGuesses: locals.user.item?.totalGuesses || 0,
+			streak: locals.user.item.streak || 0,
+			won: locals.user.item.won
+		};
 	}
 
 	const query = gql`
@@ -90,6 +101,7 @@ export async function load({ cookies, locals }) {
 
 		if (locals.user.userId) {
 			createSearchedItem(locals.user.userId);
+			logger.log(getSearchedItem(locals.user.userId)?.name);
 		}
 	} else {
 		logger.error('Could not load Armors from GraphQL', { query });
@@ -102,10 +114,13 @@ export async function load({ cookies, locals }) {
 		throw new Error(e);
 	});
 
+	console.log(getSearchedItem(locals.user.userId)?.name);
 	return {
 		imgSrc: base64,
-		items: result,
-		totalGuesses: userData?.totalGuesses
+		items: result.items,
+		totalGuesses: locals.user.item?.totalGuesses || 0,
+		streak: locals.user.item.streak || 0,
+		won: !!locals.user.item.won
 	};
 }
 
@@ -139,6 +154,7 @@ export const actions = {
 				won: correct,
 				totalGuesses: locals.user.item.totalGuesses ? locals.user.item.totalGuesses + 1 : 1,
 				item: correct ? searchedItem : undefined,
+				streak: correct ? (locals.user.item.streak || 0) + 1 : locals.user.item.streak,
 				pixelate: !correct
 					? (locals.user.item.pixelate || DEFAULT_PIXELATION) + 3
 					: DEFAULT_PIXELATION
@@ -162,7 +178,25 @@ export const actions = {
 		return {
 			imgSrc: base64,
 			totalGuesses: (locals.user.item.totalGuesses || 0) + 1,
-			won: false
+			won: correct
 		};
+	},
+
+	restart: async ({ cookies, locals }) => {
+		const { token } = createJwtToken<CookieData>({
+			...locals.user,
+			item: {
+				won: false,
+				totalGuesses: 0,
+				streak: locals.user.item.streak,
+				imgSrc: ''
+			}
+		});
+
+		if (token) {
+			cookies.set('user', token);
+		}
+
+		return true;
 	}
 };

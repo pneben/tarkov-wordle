@@ -19,7 +19,7 @@
 	export let form: ResultData;
 	$: if (form) addItem(form);
 
-	let guesses: ResultData[] = [];
+	let guesses: Omit<ResultData, 'streak'>[] = [];
 	let selectedId: string;
 	let guessBlocked = false;
 	let showWinBanner = false;

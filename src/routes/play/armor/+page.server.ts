@@ -103,6 +103,7 @@ export async function load({ locals }): Promise<{
 	item?: ResultItemData | undefined;
 	dataPoints?: DataPoint[] | undefined;
 	totalGuesses?: number | undefined;
+	streak?: number;
 	armors?: {
 		items: Armor[];
 	};
@@ -113,6 +114,7 @@ export async function load({ locals }): Promise<{
 			item: locals.user.armor.item,
 			dataPoints: locals.user.armor.dataPoints,
 			totalGuesses: locals.user.armor.totalGuesses,
+			streak: locals.user.armor.streak,
 			armors: { items: [] }
 		};
 	}
@@ -159,6 +161,8 @@ export async function load({ locals }): Promise<{
 
 		if (locals.user.userId) {
 			createSearchedArmor(locals.user.userId);
+
+			logger.log(getSearchedArmor(locals.user.userId)?.name);
 		}
 	} else {
 		logger.error('Could not load Armors from GraphQL', { query });
@@ -174,6 +178,9 @@ export const actions = {
 	select: async ({ request, cookies, locals }): Promise<ResultData | false> => {
 		const id = (await request.formData()).get('id');
 		const armor = armors.find((x) => x.id === id);
+
+		let streak = locals.user.armor.streak || 0;
+
 		if (!armor) return false;
 
 		let isWon = false;
@@ -193,6 +200,7 @@ export const actions = {
 		 */
 		if (dataPoints.filter((x) => x.variant === 'true').length === dataPoints.length) {
 			isWon = true;
+			streak = streak + 1;
 			logger.log(`User ${locals.user.userId} has won. Item was ${armor.name}`);
 		}
 
@@ -205,7 +213,8 @@ export const actions = {
 				item: {
 					id: armor.id,
 					name: armor.name
-				}
+				},
+				streak
 			}
 		});
 
@@ -220,7 +229,8 @@ export const actions = {
 				id: armor.id,
 				name: armor.shortName
 			},
-			dataPoints
+			dataPoints,
+			streak
 		};
 	},
 	restart: async ({ cookies, locals }) => {
@@ -229,7 +239,8 @@ export const actions = {
 			armor: {
 				won: false,
 				totalGuesses: 0,
-				dataPoints: []
+				dataPoints: [],
+				streak: locals.user.armor.streak
 			}
 		});
 
