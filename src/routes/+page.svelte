@@ -1,6 +1,6 @@
 <script lang="ts">
-	import githubLogoWhite from '$lib/assets/github-mark-white.svg';
-	import githubLogo from '$lib/assets/github-mark.svg';
+	import githubWhite from '$lib/assets/github-mark-white.svg';
+	import githubDefault from '$lib/assets/github-mark.svg';
 	import pixelatedRoaster from '$lib/assets/pixelated-roaster.jpeg';
 	import TarkovleResult from '$lib/components/TarkovleResult.svelte';
 
@@ -26,12 +26,12 @@
 	];
 </script>
 
-<div class="flex flex-col justify-center items-center gap-y-12">
+<div class="flex flex-col justify-center items-center gap-y-6">
 	<div class="flex gap-10 flex-wrap items-center justify-center">
 		{#each gamemodes as mode}
 			<a
 				href={mode.to}
-				class="card w-72 bg-base-300 drop-shadow-sm hover:drop-shadow-lg cursor-pointer transition select-none"
+				class="card w-72 bg-base-300 drop-shadow-md hover:drop-shadow-xl cursor-pointer transition select-none"
 			>
 				<figure
 					class="dark:bg-base-200 bg-base-300 border-b dark:border-transparent border-gray-400 p-4 h-[200px]"
@@ -47,7 +47,8 @@
 	</div>
 	<div class="self-start w-10 text-arrowtown-400 m-8">
 		<a href="https://github.com/pneben/tarkov-wordle" target="_blank">
-			<img src={githubLogo} alt="" />
+			<img class="dark:hidden block" src={githubDefault} alt="" />
+			<img class="dark:block hidden" src={githubWhite} alt="" />
 		</a>
 	</div>
 </div>
